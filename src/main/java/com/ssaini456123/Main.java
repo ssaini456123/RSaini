@@ -6,6 +6,7 @@ public class Main {
 
     public static void main(String[] args) {
         Config c = new Config(CONFIG_FILE_NAME);
-
+        System.out.println(c.getBotPrefix());
+        System.out.println(c.getBotToken());
     }
 }
