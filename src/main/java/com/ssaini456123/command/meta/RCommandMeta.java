@@ -2,6 +2,7 @@ package com.ssaini456123.command.meta;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.util.Map;
 
 /**
  * @author Sutinder S. Saini
@@ -19,6 +20,13 @@ public @interface RCommandMeta {
      * @return The description
      */
     String description();
+
+
+    /**
+     * How to use this command
+     * @return The way you use this command
+     */
+    String usage();
 
     /**
      * The category the command fits

@@ -36,9 +36,7 @@ public class CommandRegistry {
                 commandHashMap.put(commandName, commandInstance);
                 metaHashMap.put(commandName, commandMeta);
 
-            } catch (InstantiationException e) {
-                throw new RuntimeException(e);
-            } catch (IllegalAccessException e) {
+            } catch (InstantiationException | IllegalAccessException e) {
                 throw new RuntimeException(e);
             }
             System.out.println(commandMeta.name());
@@ -57,4 +55,13 @@ public class CommandRegistry {
         return commandHashMap.get(name);
     }
 
+    @NotNull
+    public static HashMap<String, RCommandMeta> getMetaHashMap() {
+        return metaHashMap;
+    }
+
+    @NotNull
+    public static HashMap<String, Command> getCommandHashMap() {
+        return commandHashMap;
+    }
 }

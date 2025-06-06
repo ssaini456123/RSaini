@@ -13,9 +13,10 @@ import java.util.ArrayList;
  */
 @RCommandMeta(
         name = "ping",
-        description = "Replies with `pong!`",
+        description = "Replies with pong!",
+        usage = "ping",
         category = CommandCategory.MISC,
-        permission = CommandPermission.USER
+        permission = CommandPermission.ADMIN
 )
 public class Ping implements Command {
 
