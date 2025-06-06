@@ -24,7 +24,6 @@ public class CommandMessageListener extends ListenerAdapter {
     }
 
     private String removePrefix(String str, String prefix) {
-        int prefixLength = prefix.length();
         if (str.startsWith(prefix)) {
             return str.substring(1);
         } else {
