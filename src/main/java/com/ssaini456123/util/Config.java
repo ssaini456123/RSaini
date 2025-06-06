@@ -1,4 +1,4 @@
-package com.ssaini456123;
+package com.ssaini456123.util;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;

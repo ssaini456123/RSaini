@@ -4,8 +4,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 
 /**
- * The metadata that is used to create commands in RSaini. <br>
- * A command in RSaini must <b>NOT</b> have the possibility of containing aliases.
+ * @author Sutinder S. Saini
  */
 @Retention(RetentionPolicy.RUNTIME)
 public @interface RCommandMeta {

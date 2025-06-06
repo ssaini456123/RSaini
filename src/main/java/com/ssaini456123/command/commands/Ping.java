@@ -10,5 +10,8 @@ import com.ssaini456123.command.RCommandMeta;
         category = CommandCategory.MISC,
         permission = CommandPermission.USER
 )
+/**
+ * @author Sutinder S. Saini
+ */
 public class Ping {
 }
