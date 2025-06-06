@@ -1,4 +1,4 @@
-package com.ssaini456123.command;
+package com.ssaini456123.command.meta;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
