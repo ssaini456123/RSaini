@@ -1,9 +1,12 @@
 package com.ssaini456123.command;
 
+import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Set;
 
 import com.ssaini456123.command.meta.RCommandMeta;
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import org.jetbrains.annotations.NotNull;
 import org.reflections.Reflections;
 
@@ -12,7 +15,7 @@ import org.reflections.Reflections;
  */
 public class CommandRegistry {
     @NotNull
-    private static final HashMap<String, Class<? extends Command>> commandHashMap = new HashMap<String, Class<? extends Command>>();
+    private static final HashMap<String, Command> commandHashMap = new HashMap<String, Command>();
     @NotNull
     private static final HashMap<String, RCommandMeta> metaHashMap = new HashMap<String, RCommandMeta>();
 
@@ -25,17 +28,33 @@ public class CommandRegistry {
 
         for (Class<? extends Command> ty : subTypes) {
             RCommandMeta commandMeta = ty.getAnnotation(RCommandMeta.class);
+            String commandName = commandMeta.name();
+
+            try {
+                Command commandInstance = ty.newInstance();
+
+                commandHashMap.put(commandName, commandInstance);
+                metaHashMap.put(commandName, commandMeta);
+
+            } catch (InstantiationException e) {
+                throw new RuntimeException(e);
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException(e);
+            }
             System.out.println(commandMeta.name());
         }
     }
 
-    @NotNull
-    public static HashMap<String, Class<? extends Command>> getCommandHashMap() {
-        return commandHashMap;
+    public boolean commandExists(String commandName) {
+        if (commandHashMap.get(commandName) == null) {
+            return false;
+        }
+
+        return true;
     }
 
-    @NotNull
-    public static HashMap<String, RCommandMeta> getMetaHashMap() {
-        return metaHashMap;
+    public Command getCommandInstance(String name) {
+        return commandHashMap.get(name);
     }
+
 }
