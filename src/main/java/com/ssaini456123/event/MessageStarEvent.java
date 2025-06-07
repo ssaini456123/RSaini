@@ -398,7 +398,7 @@ public class MessageStarEvent extends ListenerAdapter {
 
             long threshold = this.getThreshold(conn, guildId);
 
-            if (reactionCount > threshold || reactionCount <= 0) {
+            if (reactionCount < threshold) {
 
                 long botMessageId = this.getBotContentId(conn, messageId);
 
