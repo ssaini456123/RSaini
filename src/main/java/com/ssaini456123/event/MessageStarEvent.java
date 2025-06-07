@@ -8,7 +8,10 @@ import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.message.react.MessageReactionAddEvent;
+import net.dv8tion.jda.api.events.message.react.MessageReactionRemoveAllEvent;
+import net.dv8tion.jda.api.events.message.react.MessageReactionRemoveEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
 import java.util.List;
@@ -34,7 +37,7 @@ public class MessageStarEvent extends ListenerAdapter {
         this.connectionPool = new ConnectionPool(configName);
     }
 
-    public String computePhase(int amount) {
+    public String computePhase(final long amount) {
         if (amount <= 1) return PHASES[0];
         else if (amount <= 10) return PHASES[1];
         else if (amount <= 15) return PHASES[2];
@@ -134,11 +137,8 @@ public class MessageStarEvent extends ListenerAdapter {
             pp.setLong(1, messageId);
 
             try (ResultSet resultSet = pp.executeQuery()) {
-                if (resultSet.next()) {
-                    return resultSet.getLong(1);
-                } else {
-                    return -1;
-                }
+                resultSet.next();
+                return resultSet.getLong(1);
             }
         } catch (SQLException e) {
             return -1;
@@ -191,8 +191,70 @@ public class MessageStarEvent extends ListenerAdapter {
         }
     }
 
-    private MessageEmbed makeEmbed(String authorName, String desc, boolean hasImages, List<Message.Attachment> attachment) {
+    private boolean removeStarer(Connection conn, long userId, long messageId) {
+        String query = "DELETE FROM starers WHERE user_id = ? AND msg_id = ?;";
+
+        try (PreparedStatement pp = conn.prepareStatement(query)) {
+            pp.setLong(1, userId);
+            pp.setLong(2, messageId);
+            pp.executeUpdate();
+            return true;
+        } catch (SQLException e) {
+            return false;
+        }
+    }
+
+    private long getThreshold(Connection conn, long guildId) {
+        String query = "SELECT threshold FROM starboard WHERE id = ?;";
+
+        try (PreparedStatement pp = conn.prepareStatement(query)) {
+
+            pp.setLong(1, guildId);
+
+            try (ResultSet rs = pp.executeQuery()) {
+                rs.next();
+                long threshold = rs.getInt(1);
+                return threshold;
+            }
+        } catch (SQLException exception) {
+            System.out.println("THRESHOLD ERR");
+            exception.printStackTrace();
+            return -1;
+        }
+    }
+
+    private boolean purgeRecord(Connection conn, long messageId) throws SQLException {
+        String entryQuery =  "DELETE FROM starboard_entries WHERE msg_id = ?;";
+        String starerQuery = "DELETE FROM starers WHERE msg_id = ?;";
+
+        conn.setAutoCommit(false); // for atomic deletes
+
+        try (PreparedStatement ep = conn.prepareStatement(entryQuery);
+             PreparedStatement sp = conn.prepareStatement(starerQuery)
+        ) {
+
+            ep.setLong(1, messageId);
+            sp.setLong(1, messageId);
+
+            ep.executeUpdate();
+            sp.executeUpdate();
+
+            conn.commit();
+            return true;
+
+        } catch (SQLException e) {
+            conn.rollback();
+            return false;
+
+        } finally {
+            conn.setAutoCommit(true);
+        }
+    }
+
+    private MessageEmbed makeEmbed(String authorName, String desc, boolean hasImages,
+                                   List<Message.Attachment> attachment) {
         EmbedBuilder emb = new EmbedBuilder();
+
         emb.addField(authorName, desc, false);
 
         if (hasImages) {
@@ -201,14 +263,15 @@ public class MessageStarEvent extends ListenerAdapter {
         }
 
         emb.setColor(Color.YELLOW);
+
         return emb.build();
     }
 
-    private String makeContentHeader(long messageId, int starCount) {
+    private String makeContentHeader(long starCount, String jumpLink) {
         String emoji = this.computePhase(starCount);
-        String heading = "%s **%d** in: <#%d>";
+        String heading = "%s `%d` | %s";
 
-        return String.format(heading, emoji, starCount, messageId);
+        return String.format(heading, emoji, starCount, jumpLink);
     }
 
     @Override
@@ -236,7 +299,10 @@ public class MessageStarEvent extends ListenerAdapter {
                     .map(r -> r.getCount())
                     .orElse(0);
 
+            String jumpLink = message.getJumpUrl();
             long starboardChannelId = this.getStarboardChannelId(conn, guildId);
+
+            long threshold = this.getThreshold(conn, guildId);
 
             TextChannel starboardChannel = event.getGuild().getTextChannelById(starboardChannelId);
             TextChannel originChannel = event.getGuild().getTextChannelById(event.getChannel().getId());
@@ -244,7 +310,9 @@ public class MessageStarEvent extends ListenerAdapter {
 
             //THIS LIBRARY FUCKING SUCKS FUCK YOU MINNDEVELOPS
 
-            if (reactionCount == 1) {
+            System.out.println(threshold);
+
+            if (reactionCount == threshold) {
                 try {
 
                     if (this.alreadyStarred(conn, reactorId, messageId)) return;
@@ -253,11 +321,10 @@ public class MessageStarEvent extends ListenerAdapter {
                         String messageContent = msg.getContentRaw();
                         String authorName = msg.getAuthor().getName();
 
-                        boolean hasAttachments = msg.getAttachments().size() > 0;
-
+                        boolean hasAttachments = !msg.getAttachments().isEmpty();
                         MessageEmbed m = this.makeEmbed(authorName, messageContent, hasAttachments, msg.getAttachments());
 
-                        String heading = this.makeContentHeader(messageId, 1);
+                        String heading = this.makeContentHeader(1, jumpLink);
                         starboardChannel.sendMessage(heading)
                                 .setEmbeds(m)
                                 .queue(sentMessage -> {
@@ -283,20 +350,83 @@ public class MessageStarEvent extends ListenerAdapter {
             }
 
             boolean alreadyStarredMessage = this.alreadyStarred(conn, reactorId, messageId);
+
             if (alreadyStarredMessage) return;
 
-            final long stars = (this.getStars(conn, reactorId, messageId)) + 1; // for display
+            long stars = (this.getStars(conn, reactorId, messageId)) + 1; // for display
+
             this.addStar(conn, messageId);
             this.addStarer(conn, messageId, reactorId);
 
-
-            String heading = this.makeContentHeader(messageId, (int) stars);
+            String heading = this.makeContentHeader(stars, jumpLink);
             long botContentId = this.getBotContentId(conn, messageId);
 
+            if (botContentId == -1) {
+                return;
+            }
+
             starboardChannel.retrieveMessageById(botContentId).queue(botMessage -> {
-                String updatedHeading = makeContentHeader(reactorId, (int) stars);
-                botMessage.editMessage(updatedHeading).queue();
+                botMessage.editMessage(heading).queue();
             });
         });
-    };
+    }
+
+    @Override
+    public void onMessageReactionRemove(@NotNull MessageReactionRemoveEvent event) {
+        long guildId = event.getGuild().getIdLong();
+        String gIdStr = event.getGuild().getId();
+        Emoji reacted = event.getEmoji();
+        Connection conn = this.connectionPool.getConnection(gIdStr);
+
+        if (!(reacted.equals(STAR_EMOJI))) {
+            return;
+        }
+
+        if (!this.starboardExists(conn, guildId)) return;
+
+        long reactorId = event.getUserIdLong();
+        long messageId = Long.parseLong(event.getMessageId());
+        long botMessageId = this.getBotContentId(conn, messageId);
+
+        event.getChannel().retrieveMessageById(event.getMessageId()).queue(message -> {
+            System.out.println("(dbg) got un-react.");
+
+            int reactionCount = message.getReactions().stream()
+                    .filter(r -> r.getEmoji().equals(STAR_EMOJI))
+                    .findFirst()
+                    .map(r -> r.getCount())
+                    .orElse(0);
+
+            // An entry cant have zero stars.
+            if (reactionCount == 0) {
+                try {
+                    this.purgeRecord(conn, messageId);
+                    System.out.println(botMessageId);
+                    event.getChannel().retrieveMessageById(botMessageId).queue(msg -> {
+                        msg.delete().queue();
+                    }, fail -> System.out.println("**** " + fail.getMessage()));
+
+                    return;
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            long starCount = this.getStars(conn, reactorId, messageId);
+            starCount -= 1;
+
+            String jumpLink = message.getJumpUrl();
+            String heading = this.makeContentHeader(starCount, jumpLink);
+
+            event.getChannel().retrieveMessageById(botMessageId).queue(msg -> {
+                msg.editMessage(heading).queue();
+            });
+
+            this.removeStar(conn, messageId);
+            this.removeStarer(conn, reactorId, messageId);
+
+        }, fail -> {
+            System.out.println("idk dude");
+        });
+    }
 }
