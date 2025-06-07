@@ -324,11 +324,11 @@ public class MessageStarEvent extends ListenerAdapter {
                         boolean hasAttachments = !msg.getAttachments().isEmpty();
                         MessageEmbed m = this.makeEmbed(authorName, messageContent, hasAttachments, msg.getAttachments());
 
-                        String heading = this.makeContentHeader(1, jumpLink);
+                        String heading = this.makeContentHeader(threshold, jumpLink);
                         starboardChannel.sendMessage(heading)
                                 .setEmbeds(m)
                                 .queue(sentMessage -> {
-                                    this.addEntry(conn, msg.getIdLong(), sentMessage.getIdLong(), originChannel.getIdLong(), 1, sentMessage.getIdLong());
+                                    this.addEntry(conn, msg.getIdLong(), sentMessage.getIdLong(), originChannel.getIdLong(), (int) threshold, sentMessage.getIdLong());
                                 }, fail -> {
                                     System.out.println("Something went wrong again idfk.");
                                 });
@@ -386,7 +386,6 @@ public class MessageStarEvent extends ListenerAdapter {
 
         long reactorId = event.getUserIdLong();
         long messageId = Long.parseLong(event.getMessageId());
-        long botMessageId = this.getBotContentId(conn, messageId);
 
         event.getChannel().retrieveMessageById(event.getMessageId()).queue(message -> {
             System.out.println("(dbg) got un-react.");
@@ -397,15 +396,18 @@ public class MessageStarEvent extends ListenerAdapter {
                     .map(r -> r.getCount())
                     .orElse(0);
 
-            // An entry cant have zero stars.
-            if (reactionCount == 0) {
+            long threshold = this.getThreshold(conn, guildId);
+
+            if (reactionCount > threshold || reactionCount <= 0) {
+
+                long botMessageId = this.getBotContentId(conn, messageId);
+
                 try {
-                    this.purgeRecord(conn, messageId);
-                    System.out.println(botMessageId);
+
                     event.getChannel().retrieveMessageById(botMessageId).queue(msg -> {
                         msg.delete().queue();
                     }, fail -> System.out.println("**** " + fail.getMessage()));
-
+                    this.purgeRecord(conn, messageId);
                     return;
                 } catch (SQLException e) {
                     e.printStackTrace();
@@ -418,7 +420,8 @@ public class MessageStarEvent extends ListenerAdapter {
             String jumpLink = message.getJumpUrl();
             String heading = this.makeContentHeader(starCount, jumpLink);
 
-            event.getChannel().retrieveMessageById(botMessageId).queue(msg -> {
+            long botMsgId = this.getBotContentId(conn, messageId);
+            event.getChannel().retrieveMessageById(botMsgId).queue(msg -> {
                 msg.editMessage(heading).queue();
             });
 
