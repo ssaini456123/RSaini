@@ -7,6 +7,9 @@ import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * @author Sutinder S. Saini
  */
@@ -22,10 +25,23 @@ public class CommandMessageListener extends ListenerAdapter {
 
     private String removePrefix(String str, String prefix) {
         if (str.startsWith(prefix)) {
-            return str.substring(1);
+            String subStr = str.substring(1);
+            String[] subParts = subStr.split(" ");
+            return subParts[0];
         } else {
             return "";
         }
+    }
+
+    private ArrayList<String> formArgs(String str) {
+        String[] test = str.split(" ");
+        ArrayList<String> argumentsList = new ArrayList<>();
+
+        for (int i = 1; i < test.length; i++) {
+            argumentsList.add(test[i]);
+        }
+
+        return argumentsList;
     }
 
     @Override
@@ -43,10 +59,12 @@ public class CommandMessageListener extends ListenerAdapter {
             return;
         }
 
+        ArrayList<String> argsList = formArgs(messageContent);
         boolean isCommand = registry.commandExists(possibleCommandName);
+
         if (isCommand) {
             Command instance = registry.getCommandInstance(possibleCommandName);
-            instance.execute(event, null);
+            instance.execute(event, this.config, argsList);
         }
     }
 }

@@ -26,7 +26,7 @@ public @interface RCommandMeta {
      * How to use this command
      * @return The way you use this command
      */
-    String usage();
+    String[] usage();
 
     /**
      * The category the command fits

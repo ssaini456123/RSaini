@@ -2,6 +2,8 @@ package com.ssaini456123.util;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -11,11 +13,25 @@ import java.nio.file.Path;
  * @author Sutinder S. Saini
  */
 public class Config {
+    @Getter
+    @Setter
     private String botToken;
+
+    @Getter
+    @Setter
     private String botPrefix;
+
+    @Getter
+    @Setter
+    private String jdbcUrl;
+
+    @Getter
+    @Setter
+    private String configName;
 
     public Config(String fileName) {
         File f = new File(fileName);
+        this.configName = fileName;
         loadFromFile(f);
     }
 
@@ -42,26 +58,12 @@ public class Config {
 
             this.botToken = loaded.getBotToken();
             this.botPrefix = loaded.getBotPrefix();
+            this.jdbcUrl = loaded.getJdbcUrl();
         } catch (JsonSyntaxException | IOException e) {
             e.printStackTrace();
         }
     }
 
-    public String getBotPrefix() {
-        return botPrefix;
-    }
-
-    public void setBotPrefix(String botPrefix) {
-        this.botPrefix = botPrefix;
-    }
-
-    public String getBotToken() {
-        return botToken;
-    }
-
-    public void setBotToken(String botToken) {
-        this.botToken = botToken;
-    }
 
     public String toString() {
         String botToken = this.getBotToken();
