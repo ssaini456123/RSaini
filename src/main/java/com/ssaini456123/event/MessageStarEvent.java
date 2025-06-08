@@ -5,10 +5,10 @@ import com.ssaini456123.util.Config;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageEmbed;
+import net.dv8tion.jda.api.entities.MessageReaction;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.message.react.MessageReactionAddEvent;
-import net.dv8tion.jda.api.events.message.react.MessageReactionRemoveAllEvent;
 import net.dv8tion.jda.api.events.message.react.MessageReactionRemoveEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.jetbrains.annotations.NotNull;
@@ -393,7 +393,7 @@ public class MessageStarEvent extends ListenerAdapter {
             int reactionCount = message.getReactions().stream()
                     .filter(r -> r.getEmoji().equals(STAR_EMOJI))
                     .findFirst()
-                    .map(r -> r.getCount())
+                    .map(MessageReaction::getCount)
                     .orElse(0);
 
             long threshold = this.getThreshold(conn, guildId);
