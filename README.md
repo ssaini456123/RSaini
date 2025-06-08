@@ -6,9 +6,12 @@ I would prefer if instead of running my bot on your local machine, you just invi
 
 Features checklist (in no particular order):
 ```
-[] Basic command parsing
-[] Command API that is usable for anyone to add features onto
-[] PostgresQL stuff
+[x] Basic command parsing
+[x] Command API that is usable for anyone to add features onto
+[x] PostgresQL stuff
+[x] user timezones
+[x] starboards
+[] tags 
 
 
 other stuff that are not mentioned here are probably also WIP.
