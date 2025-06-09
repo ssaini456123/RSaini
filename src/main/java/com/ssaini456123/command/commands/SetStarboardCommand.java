@@ -15,6 +15,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * @author Sutinder S. Saini
@@ -39,6 +40,7 @@ public class SetStarboardCommand implements Command {
             preparedStatement.executeUpdate();
             return true;
         } catch (RuntimeException | SQLException e) {
+            e.printStackTrace();
             return false;
         }
     }
@@ -53,7 +55,7 @@ public class SetStarboardCommand implements Command {
             return;
         }
 
-        boolean isAdmin = event.getMember().hasPermission(Permission.ADMINISTRATOR);
+        boolean isAdmin = Objects.requireNonNull(event.getMember()).hasPermission(Permission.ADMINISTRATOR);
 
         if (!isAdmin) {
             eventChannel.sendMessage("This command requires `Permission.ADMIN` in order to execute.").queue();

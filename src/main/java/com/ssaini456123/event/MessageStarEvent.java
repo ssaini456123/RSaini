@@ -204,7 +204,7 @@ public class MessageStarEvent extends ListenerAdapter {
         }
     }
 
-    private long getThreshold(Connection conn, long guildId) {
+    private int getThreshold(Connection conn, long guildId) {
         String query = "SELECT threshold FROM starboard WHERE id = ?;";
 
         try (PreparedStatement pp = conn.prepareStatement(query)) {
@@ -213,7 +213,7 @@ public class MessageStarEvent extends ListenerAdapter {
 
             try (ResultSet rs = pp.executeQuery()) {
                 rs.next();
-                long threshold = rs.getInt(1);
+                int threshold = rs.getInt(1);
                 return threshold;
             }
         } catch (SQLException exception) {
@@ -302,15 +302,10 @@ public class MessageStarEvent extends ListenerAdapter {
             String jumpLink = message.getJumpUrl();
             long starboardChannelId = this.getStarboardChannelId(conn, guildId);
 
-            long threshold = this.getThreshold(conn, guildId);
+            int threshold = this.getThreshold(conn, guildId);
 
             TextChannel starboardChannel = event.getGuild().getTextChannelById(starboardChannelId);
             TextChannel originChannel = event.getGuild().getTextChannelById(event.getChannel().getId());
-
-
-            //THIS LIBRARY FUCKING SUCKS FUCK YOU MINNDEVELOPS
-
-            System.out.println(threshold);
 
             if (reactionCount == threshold) {
                 try {
@@ -323,13 +318,22 @@ public class MessageStarEvent extends ListenerAdapter {
 
                         boolean hasAttachments = !msg.getAttachments().isEmpty();
                         MessageEmbed m = this.makeEmbed(authorName, messageContent, hasAttachments, msg.getAttachments());
-
                         String heading = this.makeContentHeader(threshold, jumpLink);
+
                         starboardChannel.sendMessage(heading)
                                 .setEmbeds(m)
                                 .queue(sentMessage -> {
-                                    this.addEntry(conn, msg.getIdLong(), sentMessage.getIdLong(), originChannel.getIdLong(), (int) threshold, sentMessage.getIdLong());
-                                }, fail -> {
+
+                                    this.addEntry(
+                                            conn,
+                                            msg.getIdLong(),
+                                            sentMessage.getIdLong(),
+                                            originChannel.getIdLong(),
+                                            threshold,
+                                            sentMessage.getIdLong()
+                                    );
+
+                                    }, fail -> {
                                     System.out.println("Something went wrong again idfk.");
                                 });
 
@@ -340,6 +344,7 @@ public class MessageStarEvent extends ListenerAdapter {
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
+
                 // make sure this mf in particular doesnt flood with react/unreacts
                 boolean starerSuccessful = this.addStarer(conn, messageId, reactorId);
 
@@ -386,9 +391,11 @@ public class MessageStarEvent extends ListenerAdapter {
 
         long reactorId = event.getUserIdLong();
         long messageId = Long.parseLong(event.getMessageId());
+        long starboardId = this.getStarboardChannelId(conn, guildId);
+
+        TextChannel starboardTextChannel = event.getJDA().getTextChannelById(starboardId);
 
         event.getChannel().retrieveMessageById(event.getMessageId()).queue(message -> {
-            System.out.println("(dbg) got un-react.");
 
             int reactionCount = message.getReactions().stream()
                     .filter(r -> r.getEmoji().equals(STAR_EMOJI))
@@ -402,16 +409,19 @@ public class MessageStarEvent extends ListenerAdapter {
 
                 long botMessageId = this.getBotContentId(conn, messageId);
 
-                try {
+                starboardTextChannel.retrieveMessageById(botMessageId).queue(
+                        msg -> {
+                            try {
+                                msg.delete().queue();
+                                this.purgeRecord(conn, messageId);
 
-                    event.getChannel().retrieveMessageById(botMessageId).queue(msg -> {
-                        msg.delete().queue();
-                    }, fail -> System.out.println("**** " + fail.getMessage()));
-                    this.purgeRecord(conn, messageId);
-                    return;
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
+                            } catch (SQLException e) {
+                                throw new RuntimeException(e);
+                            }
+                        }, failure -> System.out.println(failure.getMessage())
+                );
+
+                return;
             }
 
             long starCount = this.getStars(conn, reactorId, messageId);
@@ -421,7 +431,8 @@ public class MessageStarEvent extends ListenerAdapter {
             String heading = this.makeContentHeader(starCount, jumpLink);
 
             long botMsgId = this.getBotContentId(conn, messageId);
-            event.getChannel().retrieveMessageById(botMsgId).queue(msg -> {
+
+            starboardTextChannel.retrieveMessageById(botMsgId).queue(msg -> {
                 msg.editMessage(heading).queue();
             });
 

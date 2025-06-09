@@ -53,9 +53,10 @@ public class CommandMessageListener extends ListenerAdapter {
             return;
         }
 
-        String possibleCommandName = removePrefix(messageContent, "$");
+        String prefix = this.config.getBotPrefix();
+        String possibleCommandName = removePrefix(messageContent, prefix);
 
-        if (possibleCommandName.equals("")) {
+        if (possibleCommandName.isEmpty()) {
             return;
         }
 
