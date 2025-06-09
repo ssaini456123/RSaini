@@ -8,14 +8,12 @@ import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.MessageReaction;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
-import net.dv8tion.jda.api.events.message.MessageDeleteEvent;
 import net.dv8tion.jda.api.events.message.react.MessageReactionAddEvent;
 import net.dv8tion.jda.api.events.message.react.MessageReactionRemoveEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
-import java.util.ArrayList;
 import java.util.List;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -252,7 +250,7 @@ public class MessageStarEvent extends ListenerAdapter {
     }
 
     private MessageEmbed makeEmbed(String authorName, String desc, boolean hasImages,
-                                   List<Message.Attachment> attachment) {
+                                   List<Message.Attachment> attachment, Color color) {
         EmbedBuilder emb = new EmbedBuilder();
 
         emb.addField(authorName, desc, false);
@@ -262,7 +260,7 @@ public class MessageStarEvent extends ListenerAdapter {
             emb.setImage(firstAttachment);
         }
 
-        emb.setColor(Color.YELLOW);
+        emb.setColor(color);
 
         return emb.build();
     }
@@ -272,6 +270,24 @@ public class MessageStarEvent extends ListenerAdapter {
         String heading = "%s `%d` | %s";
 
         return String.format(heading, emoji, starCount, jumpLink);
+    }
+
+    private Color getStarGradientColor(int quantity) {
+        int rangeMin = 1;
+        int rangeMax = 10;
+
+        if (quantity < rangeMin) quantity = rangeMin;
+        else if (quantity > rangeMax) quantity = rangeMax;
+
+        int maxBlue = 90;
+        int minBlue = 0; // highest brightness
+
+        int blue = maxBlue - (maxBlue - minBlue) * (quantity - 1) / (rangeMax-rangeMin);
+
+        int red = 255;
+        int green = 255;
+
+        return new Color(red, green, blue);
     }
 
     @Override
@@ -317,7 +333,8 @@ public class MessageStarEvent extends ListenerAdapter {
                         String authorName = msg.getAuthor().getName();
 
                         boolean hasAttachments = !msg.getAttachments().isEmpty();
-                        MessageEmbed m = this.makeEmbed(authorName, messageContent, hasAttachments, msg.getAttachments());
+                        Color embedColor = this.getStarGradientColor(threshold);
+                        MessageEmbed m = this.makeEmbed(authorName, messageContent, hasAttachments, msg.getAttachments(), embedColor);
                         String heading = this.makeContentHeader(threshold, jumpLink);
 
                         starboardChannel.sendMessage(heading)
@@ -360,6 +377,9 @@ public class MessageStarEvent extends ListenerAdapter {
 
             long stars = (this.getStars(conn, reactorId, messageId)) + 1; // for display
 
+            Color embedBrightness = this.getStarGradientColor((int) stars);
+
+            System.out.println(embedBrightness);
             this.addStar(conn, messageId);
             this.addStarer(conn, messageId, reactorId);
 
@@ -372,6 +392,15 @@ public class MessageStarEvent extends ListenerAdapter {
 
             starboardChannel.retrieveMessageById(botContentId).queue(botMessage -> {
                 botMessage.editMessage(heading).queue();
+                MessageEmbed oldEmbed = botMessage.getEmbeds().get(0);
+                EmbedBuilder embedBldr = new EmbedBuilder(oldEmbed);
+
+                Color c = this.getStarGradientColor((int) stars);
+                embedBldr.setColor(c);
+
+                MessageEmbed newEmbed = embedBldr.build();
+
+                botMessage.editMessageEmbeds(newEmbed).queue();
             });
         });
     }
@@ -425,15 +454,25 @@ public class MessageStarEvent extends ListenerAdapter {
             }
 
             long starCount = this.getStars(conn, reactorId, messageId);
-            starCount -= 1;
+            int decStarCount = (int) starCount - 1;
 
             String jumpLink = message.getJumpUrl();
-            String heading = this.makeContentHeader(starCount, jumpLink);
+            String heading = this.makeContentHeader(decStarCount, jumpLink);
 
             long botMsgId = this.getBotContentId(conn, messageId);
 
             starboardTextChannel.retrieveMessageById(botMsgId).queue(msg -> {
+
                 msg.editMessage(heading).queue();
+
+                MessageEmbed messageEmbed = msg.getEmbeds().get(0);
+                EmbedBuilder embedBuilder = new EmbedBuilder(messageEmbed);
+
+                Color c = this.getStarGradientColor(decStarCount);
+                embedBuilder.setColor(c);
+                MessageEmbed newEmbed = embedBuilder.build();
+
+                msg.editMessageEmbeds(newEmbed).queue();
             });
 
             this.removeStar(conn, messageId);
