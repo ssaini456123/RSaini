@@ -81,6 +81,36 @@ public class Time implements Command {
         return "☀️";
     }
 
+    private String getSelfFormattedTime(String timezone) {
+        ZonedDateTime current_time = ZonedDateTime.now(ZoneId.of(timezone));
+        int hr24 = current_time.getHour();
+        int min = current_time.getMinute();
+
+        int hr12 = hr24 % 12 == 0 ? 12 : hr24 % 12;
+
+        String timeMarker = hr24 < 12 ? "AM" : "PM";
+
+        String emoji = this.getTimeEmoji(timeMarker);
+        String timeFmt = String.format("%s It is currently **%d:%02d %s** for you.", emoji, hr12, min, timeMarker);
+
+        return timeFmt;
+    }
+
+    private String getUserFormattedTime(String timezone, String username) {
+        ZonedDateTime current_time = ZonedDateTime.now(ZoneId.of(timezone));
+        int hr24 = current_time.getHour();
+        int min = current_time.getMinute();
+
+        int hr12 = hr24 % 12 == 0 ? 12 : hr24 % 12;
+        String timeMarker = hr24 < 12 ? "AM" : "PM";
+
+        String emoji = this.getTimeEmoji(timeMarker);
+        String timeFmt = String.format("%s It is currently **%d:%02d %s** for %s...", emoji, hr12, min, timeMarker,
+                username);
+
+        return timeFmt;
+    }
+
     @Override
     public void execute(MessageReceivedEvent event, Config c, ArrayList<String> args) {
         boolean self = args.isEmpty();
@@ -104,15 +134,7 @@ public class Time implements Command {
                 return;
             }
 
-            ZonedDateTime current_time = ZonedDateTime.now(ZoneId.of(tz));
-            int hr24 = current_time.getHour();
-            int min = current_time.getMinute();
-
-            int hr12 = hr24 % 12 == 0 ? 12 : hr24 % 12;
-            String timeMarker = hr24 < 12 ? "AM" : "PM";
-
-            String emoji = this.getTimeEmoji(timeMarker);
-            String timeFmt = String.format("%s It is currently **%d:%02d %s** for you.", emoji, hr12, min, timeMarker);
+            String timeFmt = this.getSelfFormattedTime(tz);
             event.getChannel().sendMessage(timeFmt).queue();
             return;
         }
@@ -133,16 +155,9 @@ public class Time implements Command {
 
             String userName = user.getName();
             String tz = this.pullTz(conn, mentionedId);
-            ZonedDateTime current_time = ZonedDateTime.now(ZoneId.of(tz));
-            int hr24 = current_time.getHour();
-            int min = current_time.getMinute();
+            String fmt = this.getUserFormattedTime(tz, userName);
 
-            int hr12 = hr24 % 12 == 0 ? 12 : hr24 % 12;
-            String timeMarker = hr24 < 12 ? "AM" : "PM";
-
-            String emoji = this.getTimeEmoji(timeMarker);
-            String timeFmt = String.format("%s It is currently **%d:%02d %s** for %s...", emoji, hr12, min, timeMarker, userName);
-            event.getChannel().sendMessage(timeFmt).queue();
+            event.getChannel().sendMessage(fmt).queue();
         }
     }
 }
