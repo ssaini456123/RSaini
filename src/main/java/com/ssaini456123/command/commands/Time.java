@@ -142,7 +142,6 @@ public class Time implements Command {
         List<User> userPing = event.getMessage().getMentions().getUsers();
         if (userPing.isEmpty()) {
             event.getChannel().sendMessage("You need to mention someone.").queue();
-            return;
         } else {
             User user = userPing.getFirst();
             long mentionedId = user.getIdLong();

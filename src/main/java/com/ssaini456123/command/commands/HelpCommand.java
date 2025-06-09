@@ -8,7 +8,9 @@ import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 
+import java.awt.*;
 import java.util.*;
+import java.util.List;
 
 /**
  * @author Sutinder S. Saini
@@ -21,7 +23,6 @@ import java.util.*;
         permission = CommandPermission.USER
 )
 public class HelpCommand implements Command {
-
     private String boldenText(String str) {
         return "**" + str + "**";
     }

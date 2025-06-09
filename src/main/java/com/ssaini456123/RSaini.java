@@ -6,20 +6,12 @@ import com.ssaini456123.event.GuildJoinEvent;
 import com.ssaini456123.event.GuildKickEvent;
 import com.ssaini456123.event.MessageStarEvent;
 import com.ssaini456123.util.Config;
-import com.ssaini456123.util.PostgresConnection;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.events.guild.GuildLeaveEvent;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.sql.SQLOutput;
-import java.sql.Statement;
-import java.util.Arrays;
 import java.util.List;
-import java.util.TimeZone;
 
 /**
  * @author Sutinder S. Saini
@@ -49,6 +41,7 @@ public class RSaini {
         try {
             jda.awaitReady();
 
+            // Sync to all the guilds we currently reside in
             List<Guild> allGuilds = jda.getGuilds();
             for (Guild g : allGuilds) {
                 String guildId = g.getId();

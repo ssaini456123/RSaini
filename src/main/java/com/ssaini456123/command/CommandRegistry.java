@@ -39,7 +39,6 @@ public class CommandRegistry {
             } catch (InstantiationException | IllegalAccessException e) {
                 throw new RuntimeException(e);
             }
-            System.out.println(commandMeta.name());
         }
     }
 

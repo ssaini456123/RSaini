@@ -14,6 +14,7 @@ import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
+import java.util.ArrayList;
 import java.util.List;
 import java.sql.Connection;
 import java.sql.PreparedStatement;

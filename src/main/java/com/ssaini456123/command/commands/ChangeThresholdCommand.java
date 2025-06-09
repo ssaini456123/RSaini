@@ -57,6 +57,7 @@ public class ChangeThresholdCommand implements Command {
         }
 
         boolean isAdmin = event.getMember().hasPermission(Permission.ADMINISTRATOR);
+
         if (!isAdmin) {
             eventChannel.sendMessage("This command requires `Permission.ADMIN` in order to execute.").queue();
             return;
@@ -82,6 +83,7 @@ public class ChangeThresholdCommand implements Command {
 
         ConnectionPool connectionPool = new ConnectionPool(c.getConfigName());
         Connection conn = connectionPool.getConnection(guildId);
+
         boolean status = changeThreshold(conn, thresholdLong, guildIdLong);
 
         if (status) {
