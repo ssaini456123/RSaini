@@ -65,6 +65,8 @@ public class HelpCommand implements Command {
                 embedBuilder.addField("", usageList[0],true);
             }
 
+            embedBuilder.setColor(Color.lightGray);
+
             MessageEmbed embed = embedBuilder.build();
             event.getChannel().sendMessageEmbeds(embed).queue();
             return;

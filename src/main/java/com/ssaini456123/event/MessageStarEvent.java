@@ -337,6 +337,7 @@ public class MessageStarEvent extends ListenerAdapter {
                         MessageEmbed m = this.makeEmbed(authorName, messageContent, hasAttachments, msg.getAttachments(), embedColor);
                         String heading = this.makeContentHeader(threshold, jumpLink);
 
+
                         starboardChannel.sendMessage(heading)
                                 .setEmbeds(m)
                                 .queue(sentMessage -> {
