@@ -8,6 +8,7 @@ import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.MessageReaction;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
+import net.dv8tion.jda.api.events.message.MessageDeleteEvent;
 import net.dv8tion.jda.api.events.message.react.MessageReactionAddEvent;
 import net.dv8tion.jda.api.events.message.react.MessageReactionRemoveEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
@@ -30,7 +31,7 @@ public class MessageStarEvent extends ListenerAdapter {
     private static final Emoji STAR_EMOJI = Emoji.fromUnicode("⭐");
 
     private static final String[] PHASES = {
-            "⭐", "✨", "🌠", "🌟"
+            "⭐", "🌟", "💫", "✨"
     };
 
     public MessageStarEvent(Config c) {
@@ -39,12 +40,10 @@ public class MessageStarEvent extends ListenerAdapter {
     }
 
     public String computePhase(final long amount) {
-        if (amount <= 1) return PHASES[0];
-        else if (amount <= 10) return PHASES[1];
-        else if (amount <= 15) return PHASES[2];
-        else {
-            return PHASES[3];
-        }
+        if      (amount >= 0 && amount < 5)     return PHASES[0];
+        else if (amount >= 5 && amount < 10)    return PHASES[1];
+        else if (amount >= 10 && amount < 25)   return PHASES[2];
+        else                                    return PHASES[3];
     }
 
     private boolean starboardExists(Connection conn, long guildId) {
