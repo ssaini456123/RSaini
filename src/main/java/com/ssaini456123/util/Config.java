@@ -41,9 +41,10 @@ public class Config {
             try {
                 Path configPath = Path.of(file.getPath());
                 Files.createFile(configPath);
-
-                System.out.println("Config file created. Press <ENTER> and fill the config file in.");
+                System.out.println("Config file created. You may now close this window.");
                 System.in.read();
+
+                return;
             } catch (RuntimeException e) {
                 e.printStackTrace();
             } catch (IOException e) {
