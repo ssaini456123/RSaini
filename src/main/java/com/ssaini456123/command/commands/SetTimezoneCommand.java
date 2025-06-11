@@ -7,17 +7,29 @@ import com.ssaini456123.command.meta.CommandPermission;
 import com.ssaini456123.command.meta.RCommandMeta;
 import com.ssaini456123.util.Config;
 import com.ssaini456123.util.PostgresConnection;
+import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.MessageEmbed;
+import net.dv8tion.jda.api.entities.emoji.Emoji;
+import net.dv8tion.jda.api.entities.emoji.UnicodeEmoji;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.events.message.react.MessageReactionAddEvent;
+import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.requests.restaction.pagination.ReactionPaginationAction;
 import org.apache.commons.text.similarity.LevenshteinDistance;
+import org.jetbrains.annotations.NotNull;
 
+import java.awt.*;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.TimeZone;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author Sutinder S. Saini
@@ -32,24 +44,15 @@ import java.util.concurrent.Executors;
         permission = CommandPermission.USER
 )
 public class SetTimezoneCommand implements Command {
+    private static final int MAX_TIMEZONES_PER_PAGE = 5;
 
-    private String findClosest(String ident) {
-        String[] matches = TimeZone.getAvailableIDs();
-        String closestMatch = null;
-
-        int minDistance = Integer.MAX_VALUE;
-
-        for (String current : matches) {
-            int distance = LevenshteinDistance.getDefaultInstance().apply(ident, current);
-
-            if (distance < minDistance) {
-                minDistance = distance;
-                closestMatch = current;
-            }
-        }
-
-        return closestMatch;
-    }
+    String[] pageControlEmojis = {
+            "◀️",
+            "▶️",
+            "🛑",
+            "⏩",
+            "⏪"
+    };
 
     private boolean isValid(String timezone) {
         String[] tzs = TimeZone.getAvailableIDs();
@@ -83,6 +86,37 @@ public class SetTimezoneCommand implements Command {
         return false;
     }
 
+    public HashMap<Integer, MessageEmbed> createPages(String[] timezones) {
+        final int maxPerPage = MAX_TIMEZONES_PER_PAGE;
+
+        HashMap<Integer, MessageEmbed> embedMap = new HashMap<>();
+
+        int pageCount = 1;
+        int i = 0;
+        int thresholdCounter = 1;
+
+        EmbedBuilder currentBuilder = new EmbedBuilder();
+
+        while (i < timezones.length) {
+            String tzFmt = String.format("`%s`", timezones[i]);
+
+            currentBuilder.setTitle("List of timezones (Page " + pageCount + ")");
+            currentBuilder.addField(tzFmt, "", true);
+
+            if ((i + 1) % maxPerPage == 0) {
+                currentBuilder.setTitle("List of Timezones (Page " + pageCount + ")");
+                embedMap.put(pageCount, currentBuilder.build());
+                currentBuilder = new EmbedBuilder();
+                pageCount++;
+            }
+
+            thresholdCounter++;
+            i++;
+        }
+
+        System.out.println(embedMap.toString());
+        return embedMap;
+    }
 
     @Override
     public void execute(MessageReceivedEvent event, Config c, ArrayList<String> args) {
@@ -92,13 +126,79 @@ public class SetTimezoneCommand implements Command {
         }
 
         String guildId = event.getGuild().getId();
-
         String tz = args.getFirst();
 
         boolean valid = this.isValid(tz);
         if (!valid) {
-            String closestMatch = this.findClosest(tz);
-            event.getChannel().sendMessage("Unknown timezone. Did you mean `"+closestMatch+"`...?").queue();
+            String[] tzs = TimeZone.getAvailableIDs();
+            HashMap<Integer, MessageEmbed> pages = this.createPages(tzs);
+
+            // page 1 -> onward
+            event.getChannel().sendMessageEmbeds(pages.get(1)).queue( embed -> {
+                int[] page = {1};
+
+                int maximumPages = pages.keySet().size();
+                String[] emojis = this.pageControlEmojis;
+
+                // Form the control panel
+                for (int i = 0; i < emojis.length; i++) {
+                    String unicode = emojis[i];
+                    Emoji emoji = Emoji.fromUnicode(unicode);
+                    embed.addReaction(emoji).queue();
+                }
+
+                long embedMessageId = embed.getIdLong();
+                long authorId = event.getAuthor().getIdLong();
+
+                ListenerAdapter emojiListener = new ListenerAdapter() {
+                    @Override
+                    public void onMessageReactionAdd(@NotNull MessageReactionAddEvent e) {
+                        MessageEmbed currentPage;
+
+                        if (e.getMessageIdLong() != embedMessageId) return;
+                        if (e.getUser().getIdLong() != authorId) return;
+
+                        String selected = e.getReaction().getEmoji().getName();
+
+                        if (selected.equals(emojis[0]) && page[0] > 1) {
+                            // go backward
+                            page[0]--;
+                            currentPage = pages.get(page[0]);
+                        } else if (selected.equals(emojis[1]) && page[0] < maximumPages) {
+                            // go forward
+                            page[0]++;
+                            currentPage = pages.get(page[0]);
+                        } else if (selected.equals(emojis[2])) {
+                            //stop
+                            embed.clearReactions().queue();
+                            event.getJDA().removeEventListener(this);
+                            return;
+                        } else if (selected.equals(emojis[3])) {
+                            //fast forward
+                            page[0] += 5;
+                            currentPage = pages.get(page[0]);
+                        } else if (selected.equals(emojis[4])) {
+                            //fast backward
+                            page[0] -= 5;
+                            currentPage = pages.get(page[0]);
+                        } else {
+                            return;
+                        }
+
+                        embed.editMessageEmbeds(currentPage).queue();
+                        e.getReaction().removeReaction(e.getUser()).queue();
+                    }
+                };
+
+                event.getJDA().addEventListener(emojiListener);
+                ScheduledExecutorService timer = Executors.newSingleThreadScheduledExecutor();
+
+                timer.schedule(() -> {
+                    embed.clearReactions().queue();
+                    event.getJDA().removeEventListener(emojiListener);
+                }, 60, TimeUnit.SECONDS);
+            });
+
             return;
         }
 
@@ -113,6 +213,5 @@ public class SetTimezoneCommand implements Command {
         } else {
             event.getChannel().sendMessage("Something went horribly wrong.").queue();
         }
-
     }
 }
