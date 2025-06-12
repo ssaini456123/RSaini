@@ -46,7 +46,7 @@ import java.util.concurrent.TimeUnit;
 public class SetTimezoneCommand implements Command {
     private static final int MAX_TIMEZONES_PER_PAGE = 5;
 
-    String[] pageControlEmojis = {
+    private static final String[] PAGE_CONTROL_EMOJIS = {
             "◀️",
             "▶️",
             "🛑",
@@ -91,30 +91,26 @@ public class SetTimezoneCommand implements Command {
 
         HashMap<Integer, MessageEmbed> embedMap = new HashMap<>();
 
-        int pageCount = 1;
+        int currentPageNo = 1;
         int i = 0;
         int thresholdCounter = 1;
 
         EmbedBuilder currentBuilder = new EmbedBuilder();
 
         while (i < timezones.length) {
-            String tzFmt = String.format("`%s`", timezones[i]);
-
-            currentBuilder.setTitle("List of timezones (Page " + pageCount + ")");
-            currentBuilder.addField(tzFmt, "", true);
+            String tzFmt = String.format("``%s``", timezones[i]);
+            currentBuilder.addField(tzFmt, "", false);
 
             if ((i + 1) % maxPerPage == 0) {
-                currentBuilder.setTitle("List of Timezones (Page " + pageCount + ")");
-                embedMap.put(pageCount, currentBuilder.build());
+                currentBuilder.setTitle("List of Timezones (Page " + currentPageNo + ")");
+                embedMap.put(currentPageNo, currentBuilder.build());
                 currentBuilder = new EmbedBuilder();
-                pageCount++;
+                currentPageNo++;
             }
 
             thresholdCounter++;
             i++;
         }
-
-        System.out.println(embedMap.toString());
         return embedMap;
     }
 
@@ -138,7 +134,7 @@ public class SetTimezoneCommand implements Command {
                 int[] page = {1};
 
                 int maximumPages = pages.keySet().size();
-                String[] emojis = this.pageControlEmojis;
+                String[] emojis = this.PAGE_CONTROL_EMOJIS;
 
                 // Form the control panel
                 for (int i = 0; i < emojis.length; i++) {
