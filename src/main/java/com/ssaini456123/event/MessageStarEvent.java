@@ -3,9 +3,7 @@ package com.ssaini456123.event;
 import com.ssaini456123.ConnectionPool;
 import com.ssaini456123.util.Config;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.MessageEmbed;
-import net.dv8tion.jda.api.entities.MessageReaction;
+import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.message.react.MessageReactionAddEvent;
@@ -249,20 +247,35 @@ public class MessageStarEvent extends ListenerAdapter {
         }
     }
 
-    private MessageEmbed makeEmbed(String authorName, String desc, boolean hasImages,
+    private MessageEmbed makeEmbed(User author, Message message, boolean hasImages,
                                    List<Message.Attachment> attachment, Color color) {
+
         EmbedBuilder emb = new EmbedBuilder();
 
-        emb.addField(authorName, desc, false);
+        String authorName = author.getName();
+        String authorPfp = author.getAvatarUrl();
+        String messageContent = message.getContentRaw();
+
+        emb.setAuthor(authorName, null, authorPfp);
+        emb.setDescription(messageContent);
 
         if (hasImages) {
             String firstAttachment = attachment.getFirst().getUrl();
             emb.setImage(firstAttachment);
         }
 
+        if (message.getType() == MessageType.INLINE_REPLY) {
+            Message repliedMessage = message.getReferencedMessage();
+            String repliedMessageAuthorName = repliedMessage.getAuthor().getName();
+            String jumpableMessageLink = String.format("[%s](%s)", repliedMessageAuthorName, repliedMessage.getJumpUrl());
+            emb.addField("**Replying to...**", jumpableMessageLink, false);
+        }
+
         emb.setColor(color);
+        emb.addField("**Original**",String.format("[Jump!](%s)", message.getJumpUrl()),false);
 
         return emb.build();
+
     }
 
     private String makeContentHeader(long starCount, String jumpLink) {
@@ -334,7 +347,7 @@ public class MessageStarEvent extends ListenerAdapter {
 
                         boolean hasAttachments = !msg.getAttachments().isEmpty();
                         Color embedColor = this.getStarGradientColor(threshold);
-                        MessageEmbed m = this.makeEmbed(authorName, messageContent, hasAttachments, msg.getAttachments(), embedColor);
+                        MessageEmbed m = this.makeEmbed(event.getUser(), msg, hasAttachments, msg.getAttachments(), embedColor);
                         String heading = this.makeContentHeader(threshold, jumpLink);
 
 
