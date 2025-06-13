@@ -347,7 +347,7 @@ public class MessageStarEvent extends ListenerAdapter {
 
                         boolean hasAttachments = !msg.getAttachments().isEmpty();
                         Color embedColor = this.getStarGradientColor(threshold);
-                        MessageEmbed m = this.makeEmbed(event.getUser(), msg, hasAttachments, msg.getAttachments(), embedColor);
+                        MessageEmbed m = this.makeEmbed(msg.getAuthor(), msg, hasAttachments, msg.getAttachments(), embedColor);
                         String heading = this.makeContentHeader(threshold, jumpLink);
 
 
