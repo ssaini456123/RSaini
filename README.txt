@@ -5,7 +5,7 @@ You can invite my bot instead of running it locally, in my opnion thats better.
 
 However, if you insist on running it, all you really need to do is run:
 ****************
-*  `mvn clean` *
+*  mvn clean   *
 ****************
 
 and then:
