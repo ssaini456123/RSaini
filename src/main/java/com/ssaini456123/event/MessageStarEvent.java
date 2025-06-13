@@ -36,9 +36,9 @@ public class MessageStarEvent extends ListenerAdapter {
     }
 
     public String computePhase(final long amount) {
-        if      (amount >= 0 && amount < 5)     return PHASES[0];
-        else if (amount >= 5 && amount < 10)    return PHASES[1];
-        else if (amount >= 10 && amount < 25)   return PHASES[2];
+        if      (amount >= 0 && amount < 3)     return PHASES[0];
+        else if (amount >= 3 && amount < 6)     return PHASES[1];
+        else if (amount >= 6 && amount < 9)     return PHASES[2];
         else                                    return PHASES[3];
     }
 
@@ -286,8 +286,8 @@ public class MessageStarEvent extends ListenerAdapter {
     }
 
     private Color getStarGradientColor(int quantity) {
-        int rangeMin = 1;
-        int rangeMax = 10;
+        int rangeMin = 0;
+        int rangeMax = 20;
 
         if (quantity < rangeMin) quantity = rangeMin;
         else if (quantity > rangeMax) quantity = rangeMax;
@@ -295,7 +295,7 @@ public class MessageStarEvent extends ListenerAdapter {
         int maxBlue = 90;
         int minBlue = 0; // highest brightness
 
-        int blue = maxBlue - (maxBlue - minBlue) * (quantity - 1) / (rangeMax-rangeMin);
+        int blue = maxBlue - (maxBlue - minBlue) * (quantity - rangeMin) / (rangeMax-rangeMin);
 
         int red = 255;
         int green = 255;

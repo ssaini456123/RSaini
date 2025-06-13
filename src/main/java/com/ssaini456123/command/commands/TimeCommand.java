@@ -6,11 +6,9 @@ import com.ssaini456123.command.meta.CommandCategory;
 import com.ssaini456123.command.meta.CommandPermission;
 import com.ssaini456123.command.meta.RCommandMeta;
 import com.ssaini456123.util.Config;
-import net.dv8tion.jda.api.entities.Mentions;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 
-import javax.management.Query;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -18,9 +16,7 @@ import java.sql.SQLException;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.List;
-import java.util.TimeZone;
 
 /**
  * @author Sutinder S. Saini
@@ -34,7 +30,7 @@ import java.util.TimeZone;
         },
         category = CommandCategory.FUN,
         permission = CommandPermission.USER)
-public class Time implements Command {
+public class TimeCommand implements Command {
 
     private boolean hasTz(Connection connection, long userId) {
         String query = "SELECT timezone FROM user_settings WHERE id = ?";
